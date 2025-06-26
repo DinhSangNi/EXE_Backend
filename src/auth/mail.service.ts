@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { SendOtpDto } from 'src/dto/request/send-otp.dto';
 
 @Injectable()
 export class MailService {

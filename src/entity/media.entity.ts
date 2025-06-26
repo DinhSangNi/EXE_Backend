@@ -4,34 +4,35 @@ import {
   DeleteDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Purpose } from 'src/constants/room-type.enum';
 import { Room } from './room.entity';
-import { User } from './user.entity';
 
-@Entity('posts')
-export class Post {
+@Entity('medias')
+export class Media {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Room, (room) => room.posts, { onDelete: 'CASCADE' })
+  @Column()
+  public_id: string;
+
+  @Column()
+  name: string;
+
+  @Column()
+  url: string;
+
+  @Column({ nullable: true })
+  type: string;
+
+  @Column({ type: 'enum', enum: Purpose, nullable: true })
+  purpose: Purpose;
+
+  @ManyToOne(() => Room, (room) => room.media, { nullable: true })
   room: Room;
-
-  @ManyToOne(() => User, (user) => user.posts)
-  owner: User;
-
-  @Column()
-  title: string;
-
-  @Column('text')
-  description: string;
-
-  @Column()
-  price: number;
-
-  @Column({ default: true })
-  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

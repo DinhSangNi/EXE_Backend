@@ -3,7 +3,6 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -11,13 +10,14 @@ import {
 } from 'typeorm';
 import { Post } from './post.entity';
 import { User } from './user.entity';
-import { RoomType } from 'src/constants/room-type.enum';
+import { PropertyType, RentalType } from 'src/constants/room-type.enum';
 import { RoomAmenity } from './room_amenity.entity';
+import { Media } from './media.entity';
 
 @Entity('rooms')
 export class Room {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;
@@ -27,9 +27,15 @@ export class Room {
 
   @Column({
     type: 'enum',
-    enum: RoomType,
+    enum: PropertyType,
   })
-  roomType: RoomType;
+  propertyType: PropertyType;
+
+  @Column({
+    type: 'enum',
+    enum: RentalType,
+  })
+  rentalType: RentalType;
 
   @Column()
   city: string;
@@ -37,10 +43,10 @@ export class Room {
   @Column()
   district: string;
 
-  @Column()
+  @Column({ nullable: true })
   ward: string;
 
-  @Column()
+  @Column({ nullable: true })
   street: string;
 
   @Column('float')
@@ -48,6 +54,12 @@ export class Room {
 
   @Column('float')
   longitude: number;
+
+  @Column('float')
+  square: number;
+
+  @OneToMany(() => Media, (media) => media.room)
+  media: Media[];
 
   @OneToMany(() => RoomAmenity, (roomAmenity) => roomAmenity.room)
   roomAmenities: RoomAmenity[];

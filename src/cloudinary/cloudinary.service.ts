@@ -7,9 +7,7 @@ const streamifier = require('streamifier');
 export class cloudinaryService {
   constructor() {}
 
-  async uploadFile(
-    file: Express.Multer.File,
-  ): Promise<UploadApiResponse | UploadApiErrorResponse> {
+  async uploadFile(file: Express.Multer.File): Promise<UploadApiResponse> {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         (error, result) => {
@@ -20,5 +18,15 @@ export class cloudinaryService {
 
       streamifier.createReadStream(file.buffer).pipe(uploadStream);
     });
+  }
+
+  async uploadMultipleFiles(
+    files: Express.Multer.File[],
+  ): Promise<UploadApiResponse[]> {
+    return Promise.all(files.map((file) => this.uploadFile(file)));
+  }
+
+  async deleteFile(publicId: string): Promise<any> {
+    await cloudinary.uploader.destroy(publicId);
   }
 }

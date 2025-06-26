@@ -4,12 +4,15 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Post } from './post.entity';
 import { Room } from './room.entity';
+import { Media } from './media.entity';
 
 @Entity('users')
 export class User {
@@ -22,16 +25,17 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   password: string;
 
-  @Column({ length: 10 })
+  @Column({ length: 10, nullable: true })
   phone: string;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.RENTER })
   role: UserRole;
 
-  @Column()
+  @ManyToOne(() => Media, { nullable: true })
+  @JoinColumn()
   avatar: string;
 
   @OneToMany(() => Room, (room) => room.owner)
@@ -46,6 +50,6 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ default: null })
   deletedAt: Date;
 }

@@ -11,8 +11,8 @@ import { RoomAmenity } from './room_amenity.entity';
 
 @Entity('amenities')
 export class Amenity {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;

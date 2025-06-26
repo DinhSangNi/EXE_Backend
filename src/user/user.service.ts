@@ -8,6 +8,7 @@ import { CreateUserDto } from 'src/dto/request/user-create.dto';
 import { User } from 'src/entity/user.entity';
 import { Repository } from 'typeorm';
 import { hash } from 'bcrypt';
+import { GoogleCreateUserDto } from 'src/dto/request/user-google-create';
 
 @Injectable()
 export class UserService {
@@ -16,10 +17,10 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const email = await this.userRepository.findOneBy({
+    const user = await this.userRepository.findOneBy({
       email: createUserDto.email,
     });
-    if (email) {
+    if (user) {
       throw new ConflictException('Email already exists');
     }
 
@@ -29,6 +30,24 @@ export class UserService {
       password: hashedPassword,
     });
     return await this.userRepository.save(newUser);
+  }
+
+  async createWithGoogle(googleCreateUserDto: GoogleCreateUserDto) {
+    const user = await this.userRepository.findOneBy({
+      email: googleCreateUserDto.email,
+    });
+    if (user) {
+      return user;
+    }
+
+    const newUser = this.userRepository.create({
+      ...googleCreateUserDto,
+    });
+    return await this.userRepository.save(newUser);
+  }
+
+  async findAll() {
+    return await this.userRepository.find();
   }
 
   async findByEmail(email: string) {

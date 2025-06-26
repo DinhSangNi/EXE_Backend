@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { UserRole } from 'src/user/user-role.enum';
 
-export class CreateUserDto {
+export class GoogleCreateUserDto {
   @IsNotEmpty()
   @IsString()
   name: string;
@@ -17,18 +17,18 @@ export class CreateUserDto {
   @IsString()
   email: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  password: string;
+  password?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Length(10)
-  phone: string;
+  phone?: string;
 
   @IsOptional()
   @IsEnum(UserRole, { message: 'Role must be one of: host, admin, renter' })
-  role: UserRole = UserRole.RENTER;
+  role?: UserRole = UserRole.RENTER;
 
   @IsOptional()
   @IsString()

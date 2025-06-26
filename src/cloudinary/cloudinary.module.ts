@@ -6,5 +6,6 @@ import { cloudinaryService } from './cloudinary.service';
   imports: [],
   controllers: [],
   providers: [cloudinaryService, cloudinaryProvider],
+  exports: [cloudinaryService, cloudinaryProvider],
 })
-export class AuthModule {}
+export class CloudinaryModule {}

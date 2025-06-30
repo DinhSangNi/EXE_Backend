@@ -4,7 +4,6 @@ import {
   IsOptional,
   IsString,
   Length,
-  max,
 } from 'class-validator';
 import { UserRole } from 'src/user/user-role.enum';
 
@@ -26,11 +25,10 @@ export class GoogleCreateUserDto {
   @Length(10)
   phone?: string;
 
+  @IsString()
+  url: string;
+
   @IsOptional()
   @IsEnum(UserRole, { message: 'Role must be one of: host, admin, renter' })
   role?: UserRole = UserRole.RENTER;
-
-  @IsOptional()
-  @IsString()
-  avatar?: string;
 }

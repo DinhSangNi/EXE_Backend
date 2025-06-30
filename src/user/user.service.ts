@@ -9,11 +9,14 @@ import { User } from 'src/entity/user.entity';
 import { Repository } from 'typeorm';
 import { hash } from 'bcrypt';
 import { GoogleCreateUserDto } from 'src/dto/request/user-google-create';
+import { MediaService } from 'src/media/media.service';
+import { Purpose } from 'src/constants/room-type.enum';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private readonly mediaService: MediaService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -32,20 +35,48 @@ export class UserService {
     return await this.userRepository.save(newUser);
   }
 
-  async createWithGoogle(googleCreateUserDto: GoogleCreateUserDto) {
-    const user = await this.userRepository.findOneBy({
-      email: googleCreateUserDto.email,
-    });
+  async createWithGoogle(
+    googleCreateUserDto: GoogleCreateUserDto,
+  ): Promise<User> {
+    // const user = await this.userRepository.findOne({
+    //   where: {
+    //     email: googleCreateUserDto.email,
+    //   },
+    //   relations: ['medias'],
+    // });
+
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.medias', 'media', 'media.purpose = :purpose', {
+        purpose: Purpose.AVATAR,
+      })
+      .addSelect(['media.url', 'media.id'])
+      .where('user.email = :email', { email: googleCreateUserDto.email })
+      .getOne();
+
     if (user) {
       return user;
     }
 
     const newUser = this.userRepository.create({
-      ...googleCreateUserDto,
+      name: googleCreateUserDto.name,
+      email: googleCreateUserDto.email,
     });
-    return await this.userRepository.save(newUser);
-  }
+    const savedUser = await this.userRepository.save(newUser);
 
+    await this.mediaService.createAvatarMediaWithGoogle({
+      userId: savedUser.id,
+      url: googleCreateUserDto.url,
+      type: 'image',
+    });
+
+    return (
+      (await this.userRepository.findOne({
+        where: { id: savedUser.id },
+        relations: ['medias'],
+      })) ?? savedUser
+    );
+  }
   async findAll() {
     return await this.userRepository.find();
   }
@@ -55,6 +86,11 @@ export class UserService {
       throw new NotFoundException('Email not found');
     }
 
-    return await this.userRepository.findOneBy({ email: email });
+    return await this.userRepository.findOne({
+      where: {
+        email: email,
+      },
+      relations: ['medias'],
+    });
   }
 }

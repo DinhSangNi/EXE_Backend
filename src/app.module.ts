@@ -9,6 +9,10 @@ import { AddressModule } from './address/address.module';
 import { MediaModule } from './media/media.module';
 import dataSource from './config/data-source';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { CronJobModule } from './cronjob/cronjob.module';
+import { AmenityModule } from './amenity/amenity.module';
+import { PostModule } from './post/post.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -40,6 +44,10 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     AddressModule,
     MediaModule,
     CloudinaryModule,
+    CronJobModule,
+    AmenityModule,
+    PostModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

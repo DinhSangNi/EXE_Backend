@@ -1,10 +1,10 @@
 // data-source.ts
 import 'dotenv/config';
 import { Amenity } from 'src/entity/amenity.entity';
+import { Category } from 'src/entity/category.entity';
 import { Media } from 'src/entity/media.entity';
 import { Post } from 'src/entity/post.entity';
-import { Room } from 'src/entity/room.entity';
-import { RoomAmenity } from 'src/entity/room_amenity.entity';
+import { PostAmenity } from 'src/entity/post_amenity.entity';
 import { User } from 'src/entity/user.entity';
 
 import { DataSource } from 'typeorm';
@@ -16,7 +16,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: [User, Post, Room, RoomAmenity, Amenity, Media],
+  entities: [User, Post, PostAmenity, Amenity, Media, Category],
   migrations: ['dist/migrations/*.js'],
   synchronize: false,
 });

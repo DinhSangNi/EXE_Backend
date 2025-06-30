@@ -11,7 +11,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Post } from './post.entity';
-import { Room } from './room.entity';
 import { Media } from './media.entity';
 
 @Entity('users')
@@ -34,12 +33,8 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.RENTER })
   role: UserRole;
 
-  @ManyToOne(() => Media, { nullable: true })
-  @JoinColumn()
-  avatar: string;
-
-  @OneToMany(() => Room, (room) => room.owner)
-  rooms: Room[];
+  @OneToMany(() => Media, (media) => media.user)
+  medias: Media[];
 
   @OneToMany(() => Post, (post) => post.owner)
   posts: Post[];

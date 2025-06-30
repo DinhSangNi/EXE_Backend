@@ -129,7 +129,7 @@ export class AuthController {
     const savedUser = await this.userService.createWithGoogle({
       email: user.email,
       name: user.name,
-      avatar: user.picture,
+      url: user.picture,
     });
 
     const accessToken = await this.authService.generateAccessToken({

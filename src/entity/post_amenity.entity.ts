@@ -1,23 +1,25 @@
 import {
+  Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
-import { Room } from './room.entity';
 import { Amenity } from './amenity.entity';
+import { Post } from './post.entity';
 
-@Entity('room_amenities')
-export class RoomAmenity {
+@Entity('post_amenities')
+export class PostAmenity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Room, (room) => room.roomAmenities)
-  room: Room;
+  @ManyToOne(() => Post, (post) => post.postAmenities)
+  post: Post;
 
-  @ManyToOne(() => Amenity, (amenity) => amenity.roomAmenities)
+  @ManyToOne(() => Amenity, (amenity) => amenity.postAmenities)
   amenity: Amenity;
 
   @CreateDateColumn()

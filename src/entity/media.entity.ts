@@ -9,17 +9,21 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Purpose } from 'src/constants/room-type.enum';
-import { Room } from './room.entity';
+import { User } from './user.entity';
+import { Post } from './post.entity';
 
 @Entity('medias')
 export class Media {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: true })
   public_id: string;
 
-  @Column()
+  @ManyToOne(() => User, (user) => user.medias)
+  user: User;
+
+  @Column({ nullable: true })
   name: string;
 
   @Column()
@@ -31,8 +35,11 @@ export class Media {
   @Column({ type: 'enum', enum: Purpose, nullable: true })
   purpose: Purpose;
 
-  @ManyToOne(() => Room, (room) => room.media, { nullable: true })
-  room: Room;
+  @ManyToOne(() => Post, (post) => post.medias, { nullable: true })
+  post: Post;
+
+  @Column({ default: true })
+  temporary: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

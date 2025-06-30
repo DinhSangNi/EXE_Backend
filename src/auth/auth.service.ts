@@ -70,7 +70,6 @@ export class AuthService {
     accessToken: string;
     refreshToken: string;
   }> {
-    console.log('loginUserDto: ', loginUserDto);
     const user = await this.validate(loginUserDto);
 
     const accessToken = await this.jwtService.signAsync({
@@ -90,8 +89,8 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        avatar: user.avatar,
         role: user.role,
+        medias: user.medias,
       },
       accessToken,
       refreshToken,
@@ -140,8 +139,9 @@ export class AuthService {
       const payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.get<string>('REFRESHTOKEN_SECRET'),
       });
-      const newAccessToken = await this.jwtService.signAsync({
+      const newAccessToken = await this.generateAccessToken({
         sub: payload.sub,
+        role: payload.role,
       });
       return newAccessToken;
     } catch (error) {

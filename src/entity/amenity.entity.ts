@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { RoomAmenity } from './room_amenity.entity';
+import { PostAmenity } from './post_amenity.entity';
 
 @Entity('amenities')
 export class Amenity {
@@ -17,8 +17,8 @@ export class Amenity {
   @Column()
   name: string;
 
-  @OneToMany(() => RoomAmenity, (roomAmenity) => roomAmenity.amenity)
-  roomAmenities: RoomAmenity[];
+  @OneToMany(() => PostAmenity, (postAmenity) => postAmenity.amenity)
+  postAmenities: PostAmenity[];
 
   @CreateDateColumn()
   createdAt: Date;

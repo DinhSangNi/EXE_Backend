@@ -15,13 +15,22 @@ import {
 import { MediaService } from './media.service';
 import { Response } from 'express';
 import { ApiResponse } from 'src/dto/Response/apiResponse.dto';
-import { UploadImageMediaDto } from 'src/dto/request/media-image-upload.dto';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { DeleteMediaDto } from 'src/dto/request/media-delete.dto';
 import { Media } from 'src/entity/media.entity';
 import { UploadMediaFormUrl } from 'src/dto/request/media-upload-url.dto';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse as ApiRes,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Media')
+@ApiBearerAuth()
 @Controller('media')
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
@@ -29,6 +38,27 @@ export class MediaController {
   @Post('/images/upload')
   @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(FilesInterceptor('files'))
+  @ApiOperation({ summary: 'Tải lên nhiều ảnh từ form-data' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
+  })
+  @ApiRes({
+    status: 200,
+    description: 'Upload nhiều ảnh thành công',
+    type: [Media],
+  })
   async uploadImageMedias(
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req: { user: { userId: string } },
@@ -49,6 +79,24 @@ export class MediaController {
   @Post('/upload/file')
   @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Tải lên media từ file (1 file)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiRes({
+    status: 200,
+    description: 'Upload media file thành công',
+    type: Media,
+  })
   async uploadMediaFromFile(
     @UploadedFile() file: Express.Multer.File,
     @Req() req: { user: { userId: string } },
@@ -68,6 +116,12 @@ export class MediaController {
 
   @Post('/upload/url')
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Tải lên media từ một URL' })
+  @ApiRes({
+    status: 200,
+    description: 'Upload từ URL thành công',
+    type: Media,
+  })
   async uploadMediaFromUrl(
     @Body() body: UploadMediaFormUrl,
     @Req() req: { user: { userId: string } },
@@ -86,6 +140,11 @@ export class MediaController {
 
   @Delete('/:id')
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Xoá media theo ID' })
+  @ApiRes({
+    status: 200,
+    description: 'Xoá media thành công',
+  })
   async deleteImageMedia(@Param() dto: DeleteMediaDto, @Res() res: Response) {
     await this.mediaService.deleteMedia(dto.id);
     return res

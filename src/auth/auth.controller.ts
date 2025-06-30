@@ -19,7 +19,15 @@ import { User } from 'src/entity/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/user/user.service';
 import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse as ApiRes,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -29,6 +37,24 @@ export class AuthController {
   ) {}
 
   @Post('/login')
+  @ApiOperation({ summary: 'Đăng nhập' })
+  @ApiBody({ type: LoginUserDto })
+  @ApiRes({
+    status: 200,
+    description: 'Đăng nhập thành công',
+    schema: {
+      example: {
+        message: 'Login successfully',
+        data: {
+          user: {
+            id: 'user-id',
+            email: 'user@example.com',
+          },
+          accessToken: 'jwt-access-token',
+        },
+      },
+    },
+  })
   async login(@Body() loginUserDto: LoginUserDto, @Res() res: Response) {
     const { user, accessToken, refreshToken } =
       await this.authService.login(loginUserDto);
@@ -52,6 +78,12 @@ export class AuthController {
   }
 
   @Post('/register')
+  @ApiOperation({ summary: 'Đăng ký tài khoản' })
+  @ApiBody({ type: CreateUserDto })
+  @ApiRes({
+    status: 201,
+    description: 'Đăng ký thành công',
+  })
   async register(@Body() createUserDto: CreateUserDto, @Res() res: Response) {
     return res
       .status(HttpStatus.CREATED)
@@ -64,6 +96,8 @@ export class AuthController {
   }
 
   @Post('/logout')
+  @ApiOperation({ summary: 'Đăng xuất' })
+  @ApiRes({ status: 200, description: 'Đăng xuất thành công' })
   async logout(@Req() req: any, @Res() res: Response) {
     res.clearCookie('refreshToken', {
       httpOnly: true,
@@ -77,6 +111,12 @@ export class AuthController {
   }
 
   @Post('/send-otp')
+  @ApiOperation({ summary: 'Gửi mã OTP' })
+  @ApiBody({ type: SendOtpDto })
+  @ApiRes({
+    status: 200,
+    description: 'Gửi mã OTP thành công',
+  })
   async sendOtp(@Body() sendOtpDto: SendOtpDto, @Res() res: Response) {
     return res
       .status(HttpStatus.OK)
@@ -86,6 +126,12 @@ export class AuthController {
   }
 
   @Post('/verify-otp')
+  @ApiOperation({ summary: 'Xác minh mã OTP' })
+  @ApiBody({ type: VerifyOtpDto })
+  @ApiRes({
+    status: 200,
+    description: 'Xác minh OTP thành công',
+  })
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res: Response) {
     return res
       .status(HttpStatus.OK)
@@ -97,6 +143,19 @@ export class AuthController {
   }
 
   @Post('/refresh')
+  @ApiOperation({ summary: 'Làm mới access token bằng refresh token' })
+  @ApiRes({
+    status: 200,
+    description: 'Refresh token thành công',
+    schema: {
+      example: {
+        message: 'Refresh token succesfully',
+        data: {
+          accessToken: 'new-jwt-access-token',
+        },
+      },
+    },
+  })
   async refreshToken(@Req() req: Request, @Res() res: Response) {
     const refreshToken = req.cookies['refreshToken'];
     if (!refreshToken) {
@@ -114,10 +173,12 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Xác thực bằng Google' })
   async googleLogin() {}
 
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Xác thực bằng Google - Redirect' })
   async googleRedirect(@Req() req: Request, @Res() res: Response) {
     const user = req.user as {
       email: string;

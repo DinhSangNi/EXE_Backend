@@ -10,6 +10,7 @@ import { MediaService } from 'src/media/media.service';
 import { IsNull, Repository } from 'typeorm';
 import { Post } from 'src/entity/post.entity';
 import { UpdatePostDto } from 'src/dto/request/post-update.dto';
+import { Category } from 'src/entity/category.entity';
 
 @Injectable()
 export class PostService {
@@ -18,6 +19,8 @@ export class PostService {
     private readonly postRepository: Repository<Post>,
     @InjectRepository(PostAmenity)
     private readonly postAmenityRepository: Repository<PostAmenity>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
     private readonly mediaService: MediaService,
   ) {}
 
@@ -162,14 +165,53 @@ export class PostService {
     return posts;
   }
 
-  async update(id: string, dto: UpdatePostDto) {
+  async update(
+    id: string,
+    dto: UpdatePostDto,
+    userId: string,
+  ): Promise<Post | null> {
+    console.log('dto: ', dto);
+
     const updated = await this.postRepository.preload({
       id,
       ...dto,
     });
 
+    console.log('updated: ', updated);
+
     if (!updated) {
       throw new NotFoundException('Post not found!');
+    }
+
+    // Tìm và gán category vào post
+    if (dto.categoryId) {
+      const category = await this.categoryRepository.findOne({
+        where: {
+          id: dto.categoryId,
+        },
+      });
+      if (category) {
+        updated.category = category;
+      }
+    }
+
+    // Nếu có url, tạo media từ url
+    if (dto.mediaIds && dto.url) {
+      const newMedia = await this.mediaService.createMediaFromUrl(
+        dto.url,
+        userId,
+      );
+      dto.mediaIds.push(newMedia.id); // Thêm media mới vào danh sách
+    }
+
+    // Gán media vào post
+    if (dto.mediaIds && dto.mediaIds.length > 0) {
+      await this.mediaService.updatePostIdToMedia(updated.id, dto.mediaIds);
+    }
+
+    // Gán amenity vào post
+    if (dto.amenityIds && dto.amenityIds.length > 0) {
+      await this.createPostAmenities(updated.id, dto.amenityIds);
     }
 
     await this.postRepository.save(updated);

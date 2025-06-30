@@ -29,6 +29,6 @@ export class GoogleCreateUserDto {
   url: string;
 
   @IsOptional()
-  @IsEnum(UserRole, { message: 'Role must be one of: host, admin, renter' })
-  role?: UserRole = UserRole.RENTER;
+  @IsEnum(UserRole, { message: 'Role must be one of: user, admin' })
+  role?: UserRole = UserRole.USER;
 }

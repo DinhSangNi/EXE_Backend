@@ -30,7 +30,7 @@ export class User {
   @Column({ length: 10, nullable: true })
   phone: string;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.RENTER })
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
   @OneToMany(() => Media, (media) => media.user)

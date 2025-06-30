@@ -5,9 +5,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostAmenity } from 'src/entity/post_amenity.entity';
 import { MediaModule } from 'src/media/media.module';
 import { Post } from 'src/entity/post.entity';
+import { Category } from 'src/entity/category.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Post, PostAmenity]), MediaModule],
+  imports: [
+    TypeOrmModule.forFeature([Post, PostAmenity, Category]),
+    MediaModule,
+  ],
   controllers: [PostController],
   providers: [PostService],
 })

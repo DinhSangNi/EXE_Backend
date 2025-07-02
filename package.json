@@ -37,6 +37,7 @@
     "class-validator": "^0.14.2",
     "cloudinary": "^2.6.1",
     "cookie-parser": "^1.4.7",
+    "dayjs": "^1.11.13",
     "ioredis": "^5.6.1",
     "mysql2": "^3.14.1",
     "nodemailer": "^7.0.3",

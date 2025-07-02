@@ -11,6 +11,7 @@ import { IsNull, Repository } from 'typeorm';
 import { Post } from 'src/entity/post.entity';
 import { UpdatePostDto } from 'src/dto/request/post-update.dto';
 import { Category } from 'src/entity/category.entity';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class PostService {
@@ -63,8 +64,7 @@ export class PostService {
       amenityIds = [],
     } = createPostDto;
 
-    const expiredDate = new Date();
-    expiredDate.setMonth(expiredDate.getMonth() + 1);
+    const expiredDate = dayjs().add(1, 'month');
 
     // Tạo post
     const post = this.postRepository.create({
@@ -116,20 +116,23 @@ export class PostService {
   }
 
   async getAll(): Promise<Post[]> {
-    return await this.postRepository.find({
-      where: {
-        deletedAt: IsNull(),
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-      relations: [
-        'medias',
-        'postAmenities',
-        'postAmenities.amenity',
-        'category',
-      ],
-    });
+    return await this.postRepository
+      .createQueryBuilder('post')
+      .leftJoin('post.owner', 'owner')
+      .leftJoinAndSelect(
+        'owner.medias',
+        'ownerMedia',
+        'ownerMedia.purpose LIKE :purpose',
+        { purpose: '%avatar%' },
+      )
+      .leftJoinAndSelect('post.medias', 'postMedia')
+      .leftJoinAndSelect('post.postAmenities', 'postAmenities')
+      .leftJoinAndSelect('postAmenities.amenity', 'amenity')
+      .leftJoinAndSelect('post.category', 'category')
+      .addSelect(['owner.name'])
+      .where('post.deletedAt IS NULL')
+      .orderBy('post.createdAt', 'DESC')
+      .getMany();
   }
 
   async getById(id: string): Promise<Post> {
@@ -138,6 +141,8 @@ export class PostService {
         id: id,
       },
       relations: [
+        'owner',
+        'owner.medias',
         'medias',
         'postAmenities',
         'postAmenities.amenity',
@@ -159,6 +164,7 @@ export class PostService {
         createdAt: 'DESC',
       },
       relations: [
+        'owner',
         'medias',
         'postAmenities',
         'postAmenities.amenity',
@@ -222,6 +228,7 @@ export class PostService {
     return await this.postRepository.findOne({
       where: { id },
       relations: [
+        'owner',
         'medias',
         'postAmenities',
         'postAmenities.amenity',

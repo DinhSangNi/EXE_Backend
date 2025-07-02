@@ -97,12 +97,26 @@ export class AuthService {
     };
   }
 
-  async register(createUserDto: CreateUserDto): Promise<Partial<User>> {
+  async register(createUserDto: CreateUserDto): Promise<{
+    user: Partial<User>;
+    accessToken: string;
+    refreshToken: string;
+  }> {
     if (await this.userService.findByEmail(createUserDto.email)) {
       throw new ConflictException('User already exists');
     }
     const { password, ...rest } = await this.userService.create(createUserDto);
-    return rest;
+    return {
+      user: rest,
+      accessToken: await this.generateAccessToken({
+        sub: rest.id,
+        role: rest.role,
+      }),
+      refreshToken: await this.generateRefreshToken({
+        sub: rest.id,
+        role: rest.role,
+      }),
+    };
   }
 
   generateOtp() {

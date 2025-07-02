@@ -63,6 +63,9 @@ export class PostService {
       amenityIds = [],
     } = createPostDto;
 
+    const expiredDate = new Date();
+    expiredDate.setMonth(expiredDate.getMonth() + 1);
+
     // Tạo post
     const post = this.postRepository.create({
       title,
@@ -79,7 +82,7 @@ export class PostService {
       category: {
         id: categoryId,
       },
-      isActive: true,
+      expiredAt: expiredDate,
     });
 
     const savedPost = await this.postRepository.save(post);

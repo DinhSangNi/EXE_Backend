@@ -34,4 +34,10 @@ export class Category {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn({
+    nullable: true,
+    default: null,
+  })
+  deletedAt: Date;
 }

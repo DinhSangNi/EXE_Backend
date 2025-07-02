@@ -12,6 +12,7 @@ import { User } from './user.entity';
 import { Category } from './category.entity';
 import { Media } from './media.entity';
 import { PostAmenity } from './post_amenity.entity';
+import { PostStatus } from 'src/constants/post-status.enum';
 
 @Entity('posts')
 export class Post {
@@ -57,11 +58,17 @@ export class Post {
   @OneToMany(() => PostAmenity, (postAmenity) => postAmenity.post)
   postAmenities: PostAmenity[];
 
-  @Column({ default: true })
-  isActive: boolean;
-
   @ManyToOne(() => User, (user) => user.posts)
   owner: User;
+
+  @Column({ type: 'enum', enum: PostStatus, default: PostStatus.PENDING })
+  status: PostStatus;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+  })
+  expiredAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;

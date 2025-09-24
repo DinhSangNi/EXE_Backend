@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpStatus,
   Param,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -24,6 +26,9 @@ import {
   ApiResponse as ApiRes,
   ApiTags,
 } from '@nestjs/swagger';
+import { FilterPostDto } from 'src/dto/request/post-filter.dto';
+import { PaginationResponse } from 'src/dto/Response/paginationResponse.dto';
+import { UserRole } from 'src/user/user-role.enum';
 
 @ApiTags('Posts')
 @ApiBearerAuth()
@@ -56,22 +61,27 @@ export class PostController {
   }
 
   @Get()
-  @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: 'Lấy tất cả bài đăng (admin)' })
+  @ApiOperation({ summary: 'Lấy tất cả bài đăng' })
   @ApiRes({
     status: 200,
     description: 'Danh sách bài đăng',
     type: [PostEntity],
   })
-  async getAlls(@Res() res: Response) {
-    return res
-      .status(HttpStatus.OK)
-      .json(
-        new ApiResponse<PostEntity[]>(
-          'Get all posts successfully!',
-          await this.postService.getAll(),
-        ),
-      );
+  async getAll(@Query() filter: FilterPostDto, @Res() res: Response) {
+    const data = await this.postService.getAll(filter);
+
+    return res.status(HttpStatus.OK).json(
+      new ApiResponse<
+        PaginationResponse<PostEntity[]> & {
+          totalExpiredItems: number;
+          totalApprovedItems: number;
+          totalPendingItems: number;
+          totalRejectedItems: number;
+        }
+      >('Get filtered posts successfully!', {
+        ...data,
+      }),
+    );
   }
 
   @Get('/user')
@@ -83,6 +93,7 @@ export class PostController {
     type: [PostEntity],
   })
   async getAllByUserId(
+    @Query() filter: FilterPostDto,
     @Req() req: { user: { userId: string; role: string } },
     @Res() res: Response,
   ) {
@@ -90,15 +101,14 @@ export class PostController {
     return res
       .status(HttpStatus.OK)
       .json(
-        new ApiResponse<PostEntity[]>(
+        new ApiResponse<PaginationResponse<PostEntity[]>>(
           'Get posts by user successfully!',
-          await this.postService.getAllByUserId(userId),
+          await this.postService.getAllByUserId(userId, filter),
         ),
       );
   }
 
   @Get('/:id')
-  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Lấy bài đăng theo ID' })
   @ApiRes({
     status: 200,
@@ -139,5 +149,24 @@ export class PostController {
           await this.postService.update(id, body, userId),
         ),
       );
+  }
+
+  @Delete('/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Xóa bài đăng theo ID' })
+  @ApiRes({
+    status: 200,
+    description: 'Xóa bài đăng thành công',
+  })
+  async delete(
+    @Param('id') id: string,
+    @Req() req: { user: { userId: string; role: UserRole } },
+    @Res() res: Response,
+  ) {
+    const { userId, role } = req.user;
+    await this.postService.delete(id, userId, role);
+    return res
+      .status(HttpStatus.OK)
+      .json(new ApiResponse<void>('Delete post successfully!'));
   }
 }

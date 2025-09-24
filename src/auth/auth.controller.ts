@@ -96,9 +96,11 @@ export class AuthController {
   }
 
   @Post('/logout')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Đăng xuất' })
   @ApiRes({ status: 200, description: 'Đăng xuất thành công' })
-  async logout(@Req() req: any, @Res() res: Response) {
+  async logout(@Res() res: Response) {
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: false,

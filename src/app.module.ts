@@ -13,6 +13,8 @@ import { CronJobModule } from './cronjob/cronjob.module';
 import { AmenityModule } from './amenity/amenity.module';
 import { PostModule } from './post/post.module';
 import { CategoryModule } from './category/category.module';
+import { NotificationModule } from './notification/notification.module';
+import { AppointmentModule } from './appointment/appointment.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { CategoryModule } from './category/category.module';
     AmenityModule,
     PostModule,
     CategoryModule,
+    NotificationModule,
+    AppointmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

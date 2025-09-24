@@ -5,10 +5,8 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { LoginUserDto } from 'src/dto/request/user-login.dto';
 import { User } from 'src/entity/user.entity';
-import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { compare } from 'bcrypt';

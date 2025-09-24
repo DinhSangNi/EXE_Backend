@@ -21,14 +21,14 @@ export class CreateUserDto {
   @IsString()
   password: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Length(10)
-  phone: string;
+  phone?: string;
 
   @IsOptional()
   @IsEnum(UserRole, { message: 'Role must be one of: user, admin' })
-  role: UserRole = UserRole.USER;
+  role?: UserRole = UserRole.USER;
 
   @IsOptional()
   @IsString()

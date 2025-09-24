@@ -13,6 +13,7 @@ import { Category } from './category.entity';
 import { Media } from './media.entity';
 import { PostAmenity } from './post_amenity.entity';
 import { PostStatus } from 'src/constants/post-status.enum';
+import { AppointmentPost } from './appointment_post.entity';
 
 @Entity('posts')
 export class Post {
@@ -60,6 +61,9 @@ export class Post {
 
   @ManyToOne(() => User, (user) => user.posts)
   owner: User;
+
+  @OneToMany(() => AppointmentPost, (ap) => ap.post)
+  appointmentPosts: AppointmentPost[];
 
   @Column({ type: 'enum', enum: PostStatus, default: PostStatus.PENDING })
   status: PostStatus;

@@ -7,6 +7,7 @@ import {
   IsUrl,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { PostStatus } from 'src/constants/post-status.enum';
 
 export class UpdatePostDto {
   @ApiPropertyOptional({
@@ -101,4 +102,12 @@ export class UpdatePostDto {
   @IsArray()
   @IsUUID('all', { each: true })
   amenityIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Trạng thái bài đăng',
+    example: ['approved', 'pending', 'rejected', 'expired'],
+    type: String,
+  })
+  @IsOptional()
+  status?: PostStatus;
 }

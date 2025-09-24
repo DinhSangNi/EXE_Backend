@@ -12,6 +12,10 @@ import { Post } from 'src/entity/post.entity';
 import { UpdatePostDto } from 'src/dto/request/post-update.dto';
 import { Category } from 'src/entity/category.entity';
 import dayjs from 'dayjs';
+import { FilterPostDto } from 'src/dto/request/post-filter.dto';
+import { PaginationResponse } from 'src/dto/Response/paginationResponse.dto';
+import { PostStatus } from 'src/constants/post-status.enum';
+import { UserRole } from 'src/user/user-role.enum';
 
 @Injectable()
 export class PostService {
@@ -115,8 +119,15 @@ export class PostService {
     });
   }
 
-  async getAll(): Promise<Post[]> {
-    return await this.postRepository
+  async getAll(filter: FilterPostDto): Promise<
+    PaginationResponse<Post[]> & {
+      totalExpiredItems: number;
+      totalApprovedItems: number;
+      totalPendingItems: number;
+      totalRejectedItems: number;
+    }
+  > {
+    const query = this.postRepository
       .createQueryBuilder('post')
       .leftJoin('post.owner', 'owner')
       .leftJoinAndSelect(
@@ -130,9 +141,111 @@ export class PostService {
       .leftJoinAndSelect('postAmenities.amenity', 'amenity')
       .leftJoinAndSelect('post.category', 'category')
       .addSelect(['owner.name'])
-      .where('post.deletedAt IS NULL')
-      .orderBy('post.createdAt', 'DESC')
-      .getMany();
+      .where('post.deletedAt IS NULL');
+
+    // Tính toán tổng số bài đăng
+    const totalAllItems = await this.postRepository.count();
+
+    // Tính toán tổng số bài đăng hết hạn
+    const totalExpiredItems = await this.postRepository.count({
+      where: {
+        status: PostStatus.EXPIRED,
+      },
+    });
+
+    // Tính toán tổng số bài đăng đã duyệt
+    const totalApprovedItems = await this.postRepository.count({
+      where: {
+        status: PostStatus.APPROVED,
+      },
+    });
+
+    // Tính toán tổng số bài đăng đang chờ duyệt
+    const totalPendingItems = await this.postRepository.count({
+      where: {
+        status: PostStatus.PENDING,
+      },
+    });
+
+    // Tính toán tổng số bài đăng đã từ chối
+    const totalRejectedItems = await this.postRepository.count({
+      where: {
+        status: PostStatus.REJECTED,
+      },
+    });
+
+    if (filter.minPrice !== undefined) {
+      query.andWhere('post.price >= :minPrice', { minPrice: filter.minPrice });
+    }
+    if (filter.maxPrice !== undefined) {
+      query.andWhere('post.price <= :maxPrice', { maxPrice: filter.maxPrice });
+    }
+
+    if (filter.minSquare !== undefined) {
+      query.andWhere('post.square >= :minSquare', {
+        minSquare: filter.minSquare,
+      });
+    }
+    if (filter.maxSquare !== undefined) {
+      query.andWhere('post.square <= :maxSquare', {
+        maxSquare: filter.maxSquare,
+      });
+    }
+    if (filter.category) {
+      query.andWhere('category.id = :category', { category: filter.category });
+    }
+
+    if (filter.province) {
+      query.andWhere('post.city = :province', {
+        province: filter.province,
+      });
+    }
+    if (filter.district) {
+      query.andWhere('post.district = :district', {
+        district: filter.district,
+      });
+    }
+    if (filter.ward) {
+      query.andWhere('post.ward = :ward', { ward: filter.ward });
+    }
+
+    if (filter.amenities && filter.amenities.length > 0) {
+      filter.amenities.forEach((amenityId, index) => {
+        query.andWhere(
+          `EXISTS (
+        SELECT 1 FROM post_amenities pa${index}
+        WHERE pa${index}.postId = post.id AND pa${index}.amenityId = :amenityId${index}
+      )`,
+          { [`amenityId${index}`]: amenityId },
+        );
+      });
+    }
+
+    if (filter.status) {
+      query.andWhere('post.status = :status', { status: filter.status });
+    }
+
+    const limit = filter.limit ?? 10;
+    const page = filter.page ?? 1;
+
+    query.skip((page - 1) * limit).take(limit);
+
+    const [items, total] = await query
+      .orderBy('post.updatedAt', 'DESC')
+      .getManyAndCount();
+
+    return {
+      page: filter.page,
+      limit: filter.limit,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      totalAllItems: totalAllItems,
+      totalExpiredItems: totalExpiredItems,
+      totalApprovedItems: totalApprovedItems,
+      totalPendingItems: totalPendingItems,
+      totalRejectedItems: totalRejectedItems,
+      data: items,
+    };
   }
 
   async getById(id: string): Promise<Post> {
@@ -153,25 +266,144 @@ export class PostService {
     return post;
   }
 
-  async getAllByUserId(userId: string): Promise<Post[]> {
-    const posts = await this.postRepository.find({
+  async getAllByUserId(
+    userId: string,
+    filter: FilterPostDto,
+  ): Promise<
+    PaginationResponse<Post[]> & {
+      totalExpiredItems: number;
+      totalApprovedItems: number;
+      totalPendingItems: number;
+      totalRejectedItems: number;
+    }
+  > {
+    const query = this.postRepository
+      .createQueryBuilder('post')
+      .leftJoin('post.owner', 'owner')
+      .leftJoinAndSelect(
+        'owner.medias',
+        'ownerMedia',
+        'ownerMedia.purpose LIKE :purpose',
+        { purpose: '%avatar%' },
+      )
+      .leftJoinAndSelect('post.medias', 'postMedia')
+      .leftJoinAndSelect('post.postAmenities', 'postAmenities')
+      .leftJoinAndSelect('postAmenities.amenity', 'amenity')
+      .leftJoinAndSelect('post.category', 'category')
+      .addSelect(['owner.name'])
+      .where('post.deletedAt IS NULL');
+
+    // Tính toán tổng số bài đăng
+    const totalAllItems = await this.postRepository.count({
       where: {
         owner: {
           id: userId,
         },
       },
-      order: {
-        createdAt: 'DESC',
-      },
-      relations: [
-        'owner',
-        'medias',
-        'postAmenities',
-        'postAmenities.amenity',
-        'category',
-      ],
     });
-    return posts;
+
+    // Tính toán tổng số bài đăng hết hạn
+    const totalExpiredItems = await this.postRepository.count({
+      where: {
+        status: PostStatus.EXPIRED,
+      },
+    });
+
+    // Tính toán tổng số bài đăng đã duyệt
+    const totalApprovedItems = await this.postRepository.count({
+      where: {
+        status: PostStatus.APPROVED,
+      },
+    });
+
+    // Tính toán tổng số bài đăng đang chờ duyệt
+    const totalPendingItems = await this.postRepository.count({
+      where: {
+        status: PostStatus.PENDING,
+      },
+    });
+
+    // Tính toán tổng số bài đăng đã từ chối
+    const totalRejectedItems = await this.postRepository.count({
+      where: {
+        status: PostStatus.REJECTED,
+      },
+    });
+
+    if (filter.minPrice !== undefined) {
+      query.andWhere('post.price >= :minPrice', { minPrice: filter.minPrice });
+    }
+    if (filter.maxPrice !== undefined) {
+      query.andWhere('post.price <= :maxPrice', { maxPrice: filter.maxPrice });
+    }
+
+    if (filter.minSquare !== undefined) {
+      query.andWhere('post.square >= :minSquare', {
+        minSquare: filter.minSquare,
+      });
+    }
+    if (filter.maxSquare !== undefined) {
+      query.andWhere('post.square <= :maxSquare', {
+        maxSquare: filter.maxSquare,
+      });
+    }
+    if (filter.category) {
+      query.andWhere('category.id = :category', { category: filter.category });
+    }
+
+    if (filter.province) {
+      query.andWhere('post.city = :province', {
+        province: filter.province,
+      });
+    }
+
+    if (filter.district) {
+      query.andWhere('post.district = :district', {
+        district: filter.district,
+      });
+    }
+
+    if (filter.ward) {
+      query.andWhere('post.ward = :ward', { ward: filter.ward });
+    }
+
+    if (filter.amenities && filter.amenities.length > 0) {
+      filter.amenities.forEach((amenityId, index) => {
+        query.andWhere(
+          `EXISTS (
+        SELECT 1 FROM post_amenities pa${index}
+        WHERE pa${index}.postId = post.id AND pa${index}.amenityId = :amenityId${index}
+      )`,
+          { [`amenityId${index}`]: amenityId },
+        );
+      });
+    }
+
+    if (filter.status) {
+      query.andWhere('post.status = :status', { status: filter.status });
+    }
+
+    const limit = filter.limit ?? 10;
+    const page = filter.page ?? 1;
+
+    query.skip((page - 1) * limit).take(limit);
+
+    const [items, total] = await query
+      .orderBy('post.updatedAt', 'DESC')
+      .getManyAndCount();
+
+    return {
+      page: filter.page,
+      limit: filter.limit,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      totalAllItems: totalAllItems,
+      totalExpiredItems: totalExpiredItems,
+      totalApprovedItems: totalApprovedItems,
+      totalPendingItems: totalPendingItems,
+      totalRejectedItems: totalRejectedItems,
+      data: items,
+    };
   }
 
   async update(
@@ -235,5 +467,26 @@ export class PostService {
         'category',
       ],
     });
+  }
+
+  async delete(id: string, userId: string, role: UserRole): Promise<void> {
+    if (role !== UserRole.ADMIN) {
+      const post = await this.postRepository.findOne({
+        where: { id, owner: { id: userId }, deletedAt: IsNull() },
+      });
+      if (!post) {
+        throw new NotFoundException(
+          'Post not found or already deleted or not yours',
+        );
+      }
+    } else {
+      const post = await this.postRepository.findOne({
+        where: { id, deletedAt: IsNull() },
+      });
+      if (!post) {
+        throw new NotFoundException('Post not found or already deleted');
+      }
+    }
+    await this.postRepository.softDelete(id);
   }
 }

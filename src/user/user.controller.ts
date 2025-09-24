@@ -10,15 +10,18 @@ import {
   ApiOperation,
   ApiResponse as ApiSwaggerResponse,
 } from '@nestjs/swagger';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/role.decorator';
 
-@ApiTags('Users') // Tên nhóm trong Swagger UI
-@ApiBearerAuth() // Thêm Bearer token input trong Swagger
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('/')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @ApiOperation({ summary: 'Lấy danh sách tất cả người dùng' })
   @ApiSwaggerResponse({
     status: 200,

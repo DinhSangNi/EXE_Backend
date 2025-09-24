@@ -77,6 +77,7 @@ export class UserService {
       })) ?? savedUser
     );
   }
+
   async findAll() {
     return await this.userRepository.find();
   }

@@ -194,4 +194,8 @@ export class MediaService {
       { post: { id: postId }, temporary: false },
     );
   }
+
+  // async deleteByPublicId(publicId: string) {
+  //   return this.mediaRepository.delete({public_id: publicId});
+  // }
 }

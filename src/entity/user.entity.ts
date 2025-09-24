@@ -12,6 +12,8 @@ import {
 } from 'typeorm';
 import { Post } from './post.entity';
 import { Media } from './media.entity';
+import { Appointment } from './appointment.entity';
+import { UserNotification } from './user_notification.entity';
 
 @Entity('users')
 export class User {
@@ -38,6 +40,15 @@ export class User {
 
   @OneToMany(() => Post, (post) => post.owner)
   posts: Post[];
+
+  @OneToMany(() => Appointment, (appointment) => appointment.user)
+  appointments: Appointment[];
+
+  @OneToMany(() => Appointment, (appointment) => appointment.host)
+  hostAppointments: Appointment[];
+
+  @OneToMany(() => UserNotification, (un) => un.user)
+  userNotifications: UserNotification[];
 
   @CreateDateColumn()
   createdAt: Date;

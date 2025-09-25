@@ -120,6 +120,7 @@ export class PostService {
 
   async getAll(filter: FilterPostDto): Promise<
     PaginationResponse<Post[]> & {
+      totalAllItems: number;
       totalExpiredItems: number;
       totalApprovedItems: number;
       totalPendingItems: number;
@@ -142,37 +143,28 @@ export class PostService {
       .addSelect(['owner.name'])
       .where('post.deletedAt IS NULL');
 
-    // Tính toán tổng số bài đăng
-    const totalAllItems = await this.postRepository.count();
+    // ==== Count section (thống kê dashboard) ====
+    const totalAllItems = await this.postRepository.count({
+      where: { deletedAt: IsNull() },
+    });
 
-    // Tính toán tổng số bài đăng hết hạn
     const totalExpiredItems = await this.postRepository.count({
-      where: {
-        status: PostStatus.EXPIRED,
-      },
+      where: { status: PostStatus.EXPIRED, deletedAt: IsNull() },
     });
 
-    // Tính toán tổng số bài đăng đã duyệt
     const totalApprovedItems = await this.postRepository.count({
-      where: {
-        status: PostStatus.APPROVED,
-      },
+      where: { status: PostStatus.APPROVED, deletedAt: IsNull() },
     });
 
-    // Tính toán tổng số bài đăng đang chờ duyệt
     const totalPendingItems = await this.postRepository.count({
-      where: {
-        status: PostStatus.PENDING,
-      },
+      where: { status: PostStatus.PENDING, deletedAt: IsNull() },
     });
 
-    // Tính toán tổng số bài đăng đã từ chối
     const totalRejectedItems = await this.postRepository.count({
-      where: {
-        status: PostStatus.REJECTED,
-      },
+      where: { status: PostStatus.REJECTED, deletedAt: IsNull() },
     });
 
+    // ==== Filtering ====
     if (filter.minPrice !== undefined) {
       query.andWhere('post.price >= :minPrice', { minPrice: filter.minPrice });
     }
@@ -190,14 +182,13 @@ export class PostService {
         maxSquare: filter.maxSquare,
       });
     }
+
     if (filter.category) {
       query.andWhere('category.id = :category', { category: filter.category });
     }
 
     if (filter.province) {
-      query.andWhere('post.city = :province', {
-        province: filter.province,
-      });
+      query.andWhere('post.city = :province', { province: filter.province });
     }
     if (filter.district) {
       query.andWhere('post.district = :district', {
@@ -212,9 +203,10 @@ export class PostService {
       filter.amenities.forEach((amenityId, index) => {
         query.andWhere(
           `EXISTS (
-        SELECT 1 FROM post_amenities pa${index}
-        WHERE pa${index}.postId = post.id AND pa${index}.amenityId = :amenityId${index}
-      )`,
+          SELECT 1 FROM post_amenities pa${index}
+          WHERE pa${index}."postId" = post.id 
+          AND pa${index}."amenityId" = :amenityId${index}
+        )`,
           { [`amenityId${index}`]: amenityId },
         );
       });
@@ -224,6 +216,7 @@ export class PostService {
       query.andWhere('post.status = :status', { status: filter.status });
     }
 
+    // ==== Pagination ====
     const limit = filter.limit ?? 10;
     const page = filter.page ?? 1;
 
@@ -234,15 +227,15 @@ export class PostService {
       .getManyAndCount();
 
     return {
-      page: filter.page,
-      limit: filter.limit,
+      page,
+      limit,
       totalPages: Math.ceil(total / limit),
-      totalItems: total,
-      totalAllItems: totalAllItems,
-      totalExpiredItems: totalExpiredItems,
-      totalApprovedItems: totalApprovedItems,
-      totalPendingItems: totalPendingItems,
-      totalRejectedItems: totalRejectedItems,
+      totalItems: total, // tổng số bài sau filter
+      totalAllItems, // tổng tất cả bài hợp lệ (chưa delete)
+      totalExpiredItems,
+      totalApprovedItems,
+      totalPendingItems,
+      totalRejectedItems,
       data: items,
     };
   }

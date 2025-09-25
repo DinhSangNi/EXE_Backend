@@ -216,7 +216,6 @@ export class PostService {
       query.andWhere('post.status = :status', { status: filter.status });
     }
 
-    // ==== Pagination ====
     const limit = filter.limit ?? 10;
     const page = filter.page ?? 1;
 
@@ -230,8 +229,8 @@ export class PostService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      totalItems: total, // tổng số bài sau filter
-      totalAllItems, // tổng tất cả bài hợp lệ (chưa delete)
+      totalItems: total,
+      totalAllItems,
       totalExpiredItems,
       totalApprovedItems,
       totalPendingItems,
@@ -283,7 +282,8 @@ export class PostService {
       .leftJoinAndSelect('postAmenities.amenity', 'amenity')
       .leftJoinAndSelect('post.category', 'category')
       .addSelect(['owner.name'])
-      .where('post.deletedAt IS NULL');
+      .where('post.deletedAt IS NULL')
+      .andWhere('owner.id = :userId', { userId });
 
     // Tính toán tổng số bài đăng
     const totalAllItems = await this.postRepository.count({

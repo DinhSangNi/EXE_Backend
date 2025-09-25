@@ -51,25 +51,38 @@ export class NotificationService {
 
       await manager.save(userNotifications);
 
-      // Trả về notification + relations
+      // Build query base
+      const qb = manager
+        .getRepository(Notification)
+        .createQueryBuilder('notification')
+        .where('notification.id = :id', { id: savedNotification.id });
 
-      return createDto.userIds
-        ? await manager
-            .getRepository(Notification)
-            .createQueryBuilder('notification')
-            .leftJoinAndSelect(
-              'notification.userNotifications',
-              'userNotification',
-            )
-            .leftJoin('userNotification.user', 'user')
-            .addSelect(['user.id', 'user.name'])
-            .where('notification.id = :id', { id: savedNotification.id })
-            .getOneOrFail()
-        : await manager
-            .getRepository(Notification)
-            .createQueryBuilder('notification')
-            .where('notification.id = :id', { id: savedNotification.id })
-            .getOneOrFail();
+      if (createDto.userIds && createDto.userIds.length > 0) {
+        qb.leftJoinAndSelect(
+          'notification.userNotifications',
+          'userNotification',
+        )
+          .leftJoin('userNotification.user', 'user')
+          .addSelect(['user.id', 'user.name']);
+      }
+
+      // Nếu type = appointment thì join thêm Appointment
+      if (createDto.type === NotificationType.APPOINTMENT) {
+        qb.leftJoinAndSelect(
+          'notification.notificationAppointments',
+          'notificationAppointment',
+        )
+          .leftJoinAndSelect(
+            'notificationAppointment.appointment',
+            'appointment',
+          )
+          .leftJoinAndSelect('appointment.user', 'appointmentUser')
+          .leftJoinAndSelect('appointment.host', 'appointmentHost')
+          .addSelect(['appointmentUser.id', 'appointmentUser.name'])
+          .addSelect(['appointmentHost.id', 'appointmentHost.name']);
+      }
+
+      return await qb.getOneOrFail();
     });
   }
 
@@ -86,9 +99,6 @@ export class NotificationService {
       sortBy = 'createdAt',
       sortOrder = 'DESC',
     } = filter;
-
-    console.log('role: ', role);
-    console.log('userId: ', userId);
 
     const query = this.notificationRepository
       .createQueryBuilder('notification')

@@ -18,7 +18,6 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Get()
-  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Lấy tất cả danh mục' })
   @ApiRes({
     status: 200,

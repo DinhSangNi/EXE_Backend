@@ -96,7 +96,6 @@ export class AuthController {
   }
 
   @Post('/logout')
-  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Đăng xuất' })
   @ApiRes({ status: 200, description: 'Đăng xuất thành công' })

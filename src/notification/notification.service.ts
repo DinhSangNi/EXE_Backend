@@ -66,22 +66,6 @@ export class NotificationService {
           .addSelect(['user.id', 'user.name']);
       }
 
-      // Nếu type = appointment thì join thêm Appointment
-      if (createDto.type === NotificationType.APPOINTMENT) {
-        qb.leftJoinAndSelect(
-          'notification.notificationAppointments',
-          'notificationAppointment',
-        )
-          .leftJoinAndSelect(
-            'notificationAppointment.appointment',
-            'appointment',
-          )
-          .leftJoinAndSelect('appointment.user', 'appointmentUser')
-          .leftJoinAndSelect('appointment.host', 'appointmentHost')
-          .addSelect(['appointmentUser.id', 'appointmentUser.name'])
-          .addSelect(['appointmentHost.id', 'appointmentHost.name']);
-      }
-
       return await qb.getOneOrFail();
     });
   }
@@ -151,37 +135,19 @@ export class NotificationService {
 
   async findById(id: string) {
     return this.notificationRepository.findOne({
-      where: {
-        id: id,
-      },
-      select: {
-        id: true,
-        title: true,
-        message: true,
-        userNotifications: {
-          user: true,
-        },
+      where: { id },
+      relations: {
         notificationAppointments: {
           appointment: {
-            appointmentDateTime: true,
             appointmentPosts: {
-              id: true,
-              post: {
-                id: true,
-                title: true,
-              },
+              post: true,
             },
           },
         },
+        userNotifications: {
+          user: true,
+        },
       },
-      relations: [
-        'notificationAppointments',
-        'notificationAppointments.appointment',
-        'notificationAppointments.appointment.appointmentPosts',
-        'notificationAppointments.appointment.appointmentPosts.post',
-        'userNotifications',
-        'userNotifications.user',
-      ],
     });
   }
 }

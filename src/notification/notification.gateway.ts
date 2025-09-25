@@ -20,7 +20,6 @@ export class NotificationGateway {
   handleJoin(@ConnectedSocket() client: Socket, @MessageBody() userId: string) {
     client.join(userId);
     this.server.to(userId).emit('joined', 'joined');
-    console.log(`User with ID ${userId} joined room ${userId}`);
   }
 
   sendNotification(userId: string, payload: any) {

@@ -12,6 +12,10 @@ import { PostStatus } from 'src/constants/post-status.enum';
 
 export class FilterPostDto {
   @IsOptional()
+  @IsString()
+  keyword?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)

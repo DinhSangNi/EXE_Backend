@@ -116,4 +116,24 @@ export class AppointmentController {
         ),
       );
   }
+
+  @Get(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get an appointment by id' })
+  async findById(
+    @Param('id') id: string,
+    @Req() req: { user: { userId: string; role: UserRole } },
+    @Res() res: Response,
+  ) {
+    const appointment = await this.appointmentService.findById(id);
+
+    return res
+      .status(HttpStatus.OK)
+      .json(
+        new ApiResponse<Appointment>(
+          'Get appointment by id successfully!',
+          appointment,
+        ),
+      );
+  }
 }

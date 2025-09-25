@@ -6,6 +6,8 @@ import { Appointment } from 'src/entity/appointment.entity';
 import { NotificationModule } from 'src/notification/notification.module';
 import { NotificationAppointment } from 'src/entity/notification_appointment.entity';
 import { AppointmentPost } from 'src/entity/appointment_post.entity';
+import { MailService } from 'src/auth/mail.service';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +17,7 @@ import { AppointmentPost } from 'src/entity/appointment_post.entity';
       AppointmentPost,
     ]),
     NotificationModule,
+    AuthModule,
   ],
   providers: [AppointmentService],
   controllers: [AppointmentController],

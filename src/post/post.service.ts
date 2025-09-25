@@ -165,6 +165,12 @@ export class PostService {
     });
 
     // ==== Filtering ====
+    if (filter.keyword !== undefined && filter.keyword.trim() !== '') {
+      const keyword = decodeURIComponent(filter.keyword).trim();
+      query.andWhere('post.title LIKE :keyword COLLATE utf8mb4_unicode_ci', {
+        keyword: `%${keyword}%`,
+      });
+    }
     if (filter.minPrice !== undefined) {
       query.andWhere('post.price >= :minPrice', { minPrice: filter.minPrice });
     }
@@ -222,7 +228,7 @@ export class PostService {
     query.skip((page - 1) * limit).take(limit);
 
     const [items, total] = await query
-      .orderBy('post.updatedAt', 'DESC')
+      .orderBy('post.updatedAt', 'ASC')
       .getManyAndCount();
 
     return {
@@ -322,6 +328,12 @@ export class PostService {
       },
     });
 
+    if (filter.keyword !== undefined && filter.keyword.trim() !== '') {
+      const keyword = decodeURIComponent(filter.keyword).trim();
+      query.andWhere('post.title LIKE :keyword COLLATE utf8mb4_unicode_ci', {
+        keyword: `%${keyword}%`,
+      });
+    }
     if (filter.minPrice !== undefined) {
       query.andWhere('post.price >= :minPrice', { minPrice: filter.minPrice });
     }

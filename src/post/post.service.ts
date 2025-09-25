@@ -68,7 +68,8 @@ export class PostService {
       amenityIds = [],
     } = createPostDto;
 
-    const expiredDate = dayjs().add(1, 'month');
+    // Convert dayjs -> Date (TypeORM hỗ trợ)
+    const expiredDate = dayjs().add(1, 'month').toDate();
 
     // Tạo post
     const post = this.postRepository.create({
@@ -83,10 +84,8 @@ export class PostService {
       square,
       price,
       owner: { id: userId },
-      category: {
-        id: categoryId,
-      },
-      expiredAt: expiredDate,
+      category: { id: categoryId },
+      expiredAt: expiredDate, // ✅ bây giờ là Date, không phải object
     });
 
     const savedPost = await this.postRepository.save(post);
@@ -94,7 +93,7 @@ export class PostService {
     // Nếu có url, tạo media từ url
     if (url) {
       const newMedia = await this.mediaService.createMediaFromUrl(url, userId);
-      mediaIds.push(newMedia.id); // Thêm media mới vào danh sách
+      mediaIds.push(newMedia.id);
     }
 
     // Gán media vào post

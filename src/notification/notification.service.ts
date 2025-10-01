@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotificationType } from 'src/constants/notification-type';
 import { CreateNotificationDto } from 'src/dto/request/notification-create.dto';
@@ -74,7 +74,12 @@ export class NotificationService {
     filter: NotificationFilterDto,
     userId: string,
     role: UserRole,
-  ): Promise<PaginationResponse<Notification[]>> {
+  ): Promise<
+    PaginationResponse<Notification[]> & {
+      totalUnreadItems: number;
+      totalReadItems: number;
+    }
+  > {
     const {
       keyword = '',
       type,
@@ -82,6 +87,7 @@ export class NotificationService {
       limit = 10,
       sortBy = 'createdAt',
       sortOrder = 'DESC',
+      isRead, // ✅ lấy ra từ filter
     } = filter;
 
     const query = this.notificationRepository
@@ -97,6 +103,7 @@ export class NotificationService {
       .leftJoinAndSelect('appointment.appointmentPosts', 'appointmentPost')
       .leftJoinAndSelect('appointmentPost.post', 'post');
 
+    // Lọc theo user nếu là USER
     if (role === UserRole.USER) {
       query.andWhere('user.id = :userId', { userId });
     }
@@ -112,7 +119,9 @@ export class NotificationService {
       query.andWhere('notification.type = :type', { type });
     }
 
-    const totalAllItems = await query.getCount();
+    if (typeof isRead === 'boolean') {
+      query.andWhere('userNotification.isRead = :isRead', { isRead });
+    }
 
     query.skip((page - 1) * limit).take(limit);
 
@@ -121,12 +130,43 @@ export class NotificationService {
       sortOrder.toUpperCase() as 'ASC' | 'DESC',
     );
 
+    // Lấy danh sách items + total
     const [items, total] = await query.getManyAndCount();
+
+    // === Đếm số chưa đọc & số đã đọc ===
+    // Query phụ: tổng chưa đọc
+    const unreadQuery = this.notificationRepository
+      .createQueryBuilder('notification')
+      .leftJoin('notification.userNotifications', 'userNotification')
+      .leftJoin('userNotification.user', 'user');
+
+    if (role === UserRole.USER) {
+      unreadQuery.andWhere('user.id = :userId', { userId });
+    }
+
+    unreadQuery.andWhere('userNotification.isRead = :isRead', {
+      isRead: false,
+    });
+    const totalUnreadItems = await unreadQuery.getCount();
+
+    // Query phụ: tổng đã đọc
+    const readQuery = this.notificationRepository
+      .createQueryBuilder('notification')
+      .leftJoin('notification.userNotifications', 'userNotification')
+      .leftJoin('userNotification.user', 'user');
+
+    if (role === UserRole.USER) {
+      readQuery.andWhere('user.id = :userId', { userId });
+    }
+
+    readQuery.andWhere('userNotification.isRead = :isRead', { isRead: true });
+    const totalReadItems = await readQuery.getCount();
 
     return {
       data: items,
-      totalItems: total,
-      totalAllItems,
+      totalItems: total, // số bản ghi theo filter hiện tại
+      totalUnreadItems,
+      totalReadItems,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
@@ -149,5 +189,20 @@ export class NotificationService {
         },
       },
     });
+  }
+
+  async markAsRead(id: string, userId: string): Promise<UserNotification> {
+    // tìm notification của user đó
+    const userNotification = await this.userNotificationRepository.findOne({
+      where: { id, user: { id: userId } },
+      relations: ['user'],
+    });
+
+    if (!userNotification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    userNotification.isRead = true;
+    return await this.userNotificationRepository.save(userNotification);
   }
 }

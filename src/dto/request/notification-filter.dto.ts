@@ -1,9 +1,9 @@
 import {
+  IsBoolean,
   IsEnum,
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { NotificationType } from 'src/constants/notification-type';
@@ -16,10 +16,6 @@ export class NotificationFilterDto {
   @IsOptional()
   @IsEnum(NotificationType)
   type?: NotificationType;
-
-  //   @IsOptional()
-  //   @IsUUID()
-  //   userId: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -38,4 +34,10 @@ export class NotificationFilterDto {
   @IsOptional()
   @IsString()
   sortOrder: 'ASC' | 'DESC' = 'DESC';
+
+  // ✅ filter theo isRead
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isRead?: boolean;
 }

@@ -42,7 +42,7 @@ export class AppointmentService {
       throw new Error('Appointment date must be in the future');
     }
 
-    // 1. Transaction để lưu appointment và các liên quan
+    // 1. Transaction lưu appointment + các liên quan
     const savedAppointment =
       await this.appointmentRepository.manager.transaction(async (manager) => {
         const appointment = manager.create(Appointment, {
@@ -65,13 +65,13 @@ export class AppointmentService {
         return savedAppointment;
       });
 
-    // 2. Transaction đã commit, query lại notification đầy đủ
-    const createAndSendNotification = async (
+    // 2. Tạo notification nhưng chưa push socket
+    const createNotification = async (
       title: string,
       message: string,
       targetUserId: string,
     ) => {
-      // 2a. Tạo notification
+      // a. Tạo notification
       const notification = await this.notificationService.create({
         title,
         message,
@@ -79,55 +79,30 @@ export class AppointmentService {
         userIds: [targetUserId],
       });
 
-      // 2b. Gắn notification với appointment
+      // b. Gắn notification với appointment
       await this.appointmentRepository.manager.save(NotificationAppointment, {
         notification,
         appointment: savedAppointment,
       });
 
-      // 2c. Query lại đầy đủ nested relations
-      // const fullNotification = await this.notificationRepository
-      //   .createQueryBuilder('notification')
-      //   .leftJoinAndSelect('notification.notificationAppointments', 'na')
-      //   .leftJoinAndSelect('na.appointment', 'a')
-      //   .leftJoinAndSelect('a.appointmentPosts', 'ap')
-      //   .leftJoinAndSelect('ap.post', 'p')
-      //   .leftJoinAndSelect('notification.userNotifications', 'un')
-      //   .leftJoinAndSelect('un.user', 'u')
-      //   .where('notification.id = :id', { id: notification.id })
-      //   .getOne();
-      const fullNotification = await this.notificationService.findById(
-        notification.id,
-      );
-
-      console.log('fullNotification: ', fullNotification);
-
-      // 2d. Gửi WebSocket
-      if (fullNotification) {
-        this.notificationGateway.sendNotification(
-          targetUserId,
-          fullNotification,
-        );
-      }
-
-      return fullNotification;
+      // c. Lấy notification đầy đủ với relations
+      return await this.notificationService.findById(notification.id);
     };
 
-    // 3. Gửi notification cho user và host
     const [userNotification, hostNotification] = await Promise.all([
-      createAndSendNotification(
+      createNotification(
         'Lịch hẹn đã được tạo',
         'Bạn đã tạo lịch hẹn thành công.',
         userId,
       ),
-      createAndSendNotification(
+      createNotification(
         'Yêu cầu lịch hẹn xem nhà mới',
         'Bạn có một yêu cầu hẹn xem nhà mới',
         createAppointmentDto.hostId,
       ),
     ]);
 
-    // 4. Gửi email cho user và host
+    // 3. Gửi email trước
     const [user, host] = await Promise.all([
       this.appointmentRepository.manager.findOne(User, {
         where: { id: userId },
@@ -142,6 +117,17 @@ export class AppointmentService {
         user.email,
         host.email,
         userNotification!, // notification đầy đủ với relations
+      );
+    }
+
+    // 4. Sau khi mail gửi xong mới push notification qua WebSocket
+    if (userNotification) {
+      this.notificationGateway.sendNotification(userId, userNotification);
+    }
+    if (hostNotification) {
+      this.notificationGateway.sendNotification(
+        createAppointmentDto.hostId,
+        hostNotification,
       );
     }
 
@@ -275,7 +261,7 @@ export class AppointmentService {
         return await manager.save(Appointment, appointment);
       });
 
-    // 2. Transaction đã commit → chuẩn bị gửi notification và email
+    // 2. Chuẩn bị message
     const firstPost = updatedAppointment.appointmentPosts[0]?.post;
     const postLocation = firstPost
       ? resolveAddress(
@@ -306,65 +292,41 @@ export class AppointmentService {
         break;
     }
 
-    // 3. Tạo và gửi notification (sau commit)
-    const createAndSendNotification = async (
-      targetUserId: string,
-      title: string,
-      message: string,
-    ) => {
-      const notification = await this.notificationService.create({
-        title,
-        message,
+    // 3. Tạo notification record
+    const [userNotification, hostNotification] = await Promise.all([
+      this.notificationService.create({
+        title: 'Cập nhật lịch hẹn',
+        message: userMsg,
         type: NotificationType.APPOINTMENT,
-        userIds: [targetUserId],
-      });
-
-      await this.appointmentRepository.manager.save(NotificationAppointment, {
-        notification,
-        appointment: updatedAppointment,
-      });
-
-      // Query lại đầy đủ nested relations để gửi WebSocket
-      // const fullNotification = await this.notificationRepository
-      //   .createQueryBuilder('notification')
-      //   .leftJoinAndSelect('notification.notificationAppointments', 'na')
-      //   .leftJoinAndSelect('na.appointment', 'a')
-      //   .leftJoinAndSelect('a.appointmentPosts', 'ap')
-      //   .leftJoinAndSelect('ap.post', 'p')
-      //   .leftJoinAndSelect('notification.userNotifications', 'un')
-      //   .leftJoinAndSelect('un.user', 'u')
-      //   .where('notification.id = :id', { id: notification.id })
-      //   .getOne();
-
-      const fullNotification = await this.notificationService.findById(
-        notification.id,
-      );
-
-      if (fullNotification) {
-        this.notificationGateway.sendNotification(
-          targetUserId,
-          fullNotification,
-        );
-      }
-
-      return fullNotification;
-    };
-
-    // Gửi notification cho user và host
-    await Promise.all([
-      createAndSendNotification(
-        updatedAppointment.user.id,
-        'Cập nhật lịch hẹn',
-        userMsg,
-      ),
-      createAndSendNotification(
-        updatedAppointment.host.id,
-        'Cập nhật lịch hẹn',
-        hostMsg,
-      ),
+        userIds: [updatedAppointment.user.id],
+      }),
+      this.notificationService.create({
+        title: 'Cập nhật lịch hẹn',
+        message: hostMsg,
+        type: NotificationType.APPOINTMENT,
+        userIds: [updatedAppointment.host.id],
+      }),
     ]);
 
-    // 4. Gửi email nếu cần
+    // 4. Save NotificationAppointment mapping
+    await Promise.all([
+      this.appointmentRepository.manager.save(NotificationAppointment, {
+        notification: userNotification,
+        appointment: updatedAppointment,
+      }),
+      this.appointmentRepository.manager.save(NotificationAppointment, {
+        notification: hostNotification,
+        appointment: updatedAppointment,
+      }),
+    ]);
+
+    // 5. Reload notification đầy đủ relations để MailService có đủ dữ liệu
+    const [fullUserNotification, fullHostNotification] = await Promise.all([
+      this.notificationService.findById(userNotification.id),
+      this.notificationService.findById(hostNotification.id),
+    ]);
+
+    // 6. Gửi email trước
     const [user, host] = await Promise.all([
       this.appointmentRepository.manager.findOne(User, {
         where: { id: updatedAppointment.user.id },
@@ -374,20 +336,31 @@ export class AppointmentService {
       }),
     ]);
 
-    if (user?.email && host?.email) {
-      const userNotification = await this.notificationService.create({
-        title: 'Cập nhật lịch hẹn',
-        message: userMsg,
-        type: NotificationType.APPOINTMENT,
-        userIds: [user.id],
-      });
+    // console.log('user email: ', user?.email);
+    // console.log('host email: ', host?.email);
 
-      await this.mailService.sendBookingSuccessMail(
-        user.email,
-        host.email,
-        userNotification,
-      );
+    if (user?.email && host?.email) {
+      try {
+        await this.mailService.sendAppointmentStatusUpdateMail(
+          user.email,
+          host.email,
+          fullUserNotification!,
+          fullHostNotification!,
+        );
+      } catch (err) {
+        console.error('Error sending mail:', err);
+      }
     }
+
+    // 7. Sau khi mail xong mới gửi socket notify
+    this.notificationGateway.sendNotification(
+      updatedAppointment.user.id,
+      userNotification,
+    );
+    this.notificationGateway.sendNotification(
+      updatedAppointment.host.id,
+      hostNotification,
+    );
 
     return updatedAppointment;
   }
@@ -400,7 +373,8 @@ export class AppointmentService {
       .leftJoinAndSelect('appointment.appointmentPosts', 'appointmentPost')
       .leftJoinAndSelect('appointmentPost.post', 'post')
       .andWhere('user.id = :userId', { userId })
-      .andWhere('post.id = :postId', { postId });
+      .andWhere('post.id = :postId', { postId })
+      .orderBy('appointment.createdAt', 'DESC');
 
     const appointment = await qb.getOne();
     if (!appointment) {

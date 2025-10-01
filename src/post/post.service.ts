@@ -85,7 +85,7 @@ export class PostService {
       price,
       owner: { id: userId },
       category: { id: categoryId },
-      expiredAt: expiredDate, // ✅ bây giờ là Date, không phải object
+      expiredAt: expiredDate,
     });
 
     const savedPost = await this.postRepository.save(post);

@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   HttpStatus,
+  Param,
+  Patch,
   Query,
   Req,
   Res,
@@ -16,6 +18,7 @@ import { ApiResponse } from 'src/dto/Response/apiResponse.dto';
 import { PaginationResponse } from 'src/dto/Response/paginationResponse.dto';
 import { Notification } from 'src/entity/notification.entity';
 import { UserRole } from 'src/user/user-role.enum';
+import { UserNotification } from 'src/entity/user_notification.entity';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
@@ -42,5 +45,18 @@ export class NotificationController {
         },
       ),
     );
+  }
+
+  @Patch(':id/read')
+  @UseGuards(AuthGuard('jwt'))
+  async markRead(@Param('id') id: string, @Req() req, @Res() res: Response) {
+    return res
+      .status(HttpStatus.OK)
+      .json(
+        new ApiResponse<UserNotification>(
+          'Mark notification as read successfully!',
+          await this.notificationService.markAsRead(id, req.user.id),
+        ),
+      );
   }
 }

@@ -19,6 +19,7 @@ import { PaginationResponse } from 'src/dto/Response/paginationResponse.dto';
 import { Notification } from 'src/entity/notification.entity';
 import { UserRole } from 'src/user/user-role.enum';
 import { UserNotification } from 'src/entity/user_notification.entity';
+import { OptionalAuthGuard } from 'src/common/guards/optional-auth.guard';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
@@ -27,14 +28,16 @@ export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Get()
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(OptionalAuthGuard)
   @ApiOperation({ summary: 'Lấy tất cả thông báo' })
   async getAll(
     @Query() filter: NotificationFilterDto,
-    @Req() req: { user: { userId: string; role: UserRole } },
+    @Req() req: { user?: { userId: string; role: UserRole } }, // có thể undefined
     @Res() res: Response,
   ) {
-    const { userId, role } = req.user;
+    const userId = req.user?.userId;
+    const role = req.user?.role;
+
     const data = await this.notificationService.findAll(filter, userId, role);
 
     return res.status(HttpStatus.OK).json(

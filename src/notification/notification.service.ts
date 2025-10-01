@@ -72,8 +72,8 @@ export class NotificationService {
 
   async findAll(
     filter: NotificationFilterDto,
-    userId: string,
-    role: UserRole,
+    userId?: string | null, // có thể null nếu chưa login
+    role?: UserRole,
   ): Promise<
     PaginationResponse<Notification[]> & {
       totalUnreadItems: number;
@@ -87,7 +87,7 @@ export class NotificationService {
       limit = 10,
       sortBy = 'createdAt',
       sortOrder = 'DESC',
-      isRead, // ✅ lấy ra từ filter
+      isRead,
     } = filter;
 
     const query = this.notificationRepository
@@ -103,11 +103,16 @@ export class NotificationService {
       .leftJoinAndSelect('appointment.appointmentPosts', 'appointmentPost')
       .leftJoinAndSelect('appointmentPost.post', 'post');
 
-    // Lọc theo user nếu là USER
-    if (role === UserRole.USER) {
-      query.andWhere('user.id = :userId', { userId });
+    // --- Lọc theo user/public ---
+    if (role === UserRole.USER && userId) {
+      // Nếu user đăng nhập → lấy notify công khai hoặc notify dành riêng user
+      query.andWhere('(user.id = :userId OR user.id IS NULL)', { userId });
+    } else {
+      // Nếu chưa đăng nhập → chỉ lấy notify công khai
+      query.andWhere('user.id IS NULL');
     }
 
+    // --- Các filter khác ---
     if (keyword) {
       query.andWhere(
         '(notification.title LIKE :keyword OR notification.message LIKE :keyword)',
@@ -134,37 +139,31 @@ export class NotificationService {
     const [items, total] = await query.getManyAndCount();
 
     // === Đếm số chưa đọc & số đã đọc ===
-    // Query phụ: tổng chưa đọc
-    const unreadQuery = this.notificationRepository
+    // Query base
+    const baseQuery = this.notificationRepository
       .createQueryBuilder('notification')
       .leftJoin('notification.userNotifications', 'userNotification')
       .leftJoin('userNotification.user', 'user');
 
-    if (role === UserRole.USER) {
-      unreadQuery.andWhere('user.id = :userId', { userId });
+    if (role === UserRole.USER && userId) {
+      baseQuery.andWhere('(user.id = :userId OR user.id IS NULL)', { userId });
+    } else {
+      baseQuery.andWhere('user.id IS NULL');
     }
 
-    unreadQuery.andWhere('userNotification.isRead = :isRead', {
-      isRead: false,
-    });
-    const totalUnreadItems = await unreadQuery.getCount();
+    const totalUnreadItems = await baseQuery
+      .clone()
+      .andWhere('userNotification.isRead = :isRead', { isRead: false })
+      .getCount();
 
-    // Query phụ: tổng đã đọc
-    const readQuery = this.notificationRepository
-      .createQueryBuilder('notification')
-      .leftJoin('notification.userNotifications', 'userNotification')
-      .leftJoin('userNotification.user', 'user');
-
-    if (role === UserRole.USER) {
-      readQuery.andWhere('user.id = :userId', { userId });
-    }
-
-    readQuery.andWhere('userNotification.isRead = :isRead', { isRead: true });
-    const totalReadItems = await readQuery.getCount();
+    const totalReadItems = await baseQuery
+      .clone()
+      .andWhere('userNotification.isRead = :isRead', { isRead: true })
+      .getCount();
 
     return {
       data: items,
-      totalItems: total, // số bản ghi theo filter hiện tại
+      totalItems: total,
       totalUnreadItems,
       totalReadItems,
       page,

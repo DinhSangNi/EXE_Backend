@@ -15,6 +15,7 @@ import { PostModule } from './post/post.module';
 import { CategoryModule } from './category/category.module';
 import { NotificationModule } from './notification/notification.module';
 import { AppointmentModule } from './appointment/appointment.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { AppointmentModule } from './appointment/appointment.module';
     CategoryModule,
     NotificationModule,
     AppointmentModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

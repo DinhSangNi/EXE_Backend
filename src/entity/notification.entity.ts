@@ -26,9 +26,11 @@ export class Notification {
   @CreateDateColumn()
   createdAt: Date;
 
-  @OneToMany(() => UserNotification, (un) => un.notification)
+  @OneToMany(() => UserNotification, (un) => un.notification, { cascade: true })
   userNotifications: UserNotification[];
 
-  @OneToMany(() => NotificationAppointment, (na) => na.notification)
+  @OneToMany(() => NotificationAppointment, (na) => na.notification, {
+    cascade: true,
+  })
   notificationAppointments: NotificationAppointment[];
 }

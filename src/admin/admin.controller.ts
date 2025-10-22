@@ -21,9 +21,8 @@ export class AdminController {
   @Roles('admin')
   async getPostsAndAppointments(@Query() query: GetPostsAndAppointmentsDto) {
     return await this.adminService.getPostsAndAppointments(
-      query.granularity,
-      query.startDate,
-      query.endDate,
+      query.month,
+      query.year,
     );
   }
 

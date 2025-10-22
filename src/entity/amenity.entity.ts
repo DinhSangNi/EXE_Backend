@@ -17,7 +17,10 @@ export class Amenity {
   @Column()
   name: string;
 
-  @OneToMany(() => PostAmenity, (postAmenity) => postAmenity.amenity)
+  @OneToMany(() => PostAmenity, (postAmenity) => postAmenity.amenity, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   postAmenities: PostAmenity[];
 
   @CreateDateColumn()

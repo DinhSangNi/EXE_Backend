@@ -4,6 +4,7 @@ import {
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Notification } from './notification.entity';
@@ -13,13 +14,20 @@ export class UserNotification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (user) => user.userNotifications)
+  @ManyToOne(() => User, (user) => user.userNotifications, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'userId' })
   user: User;
 
   @ManyToOne(
     () => Notification,
     (notification) => notification.userNotifications,
+    {
+      onDelete: 'CASCADE',
+    },
   )
+  @JoinColumn({ name: 'notificationId' })
   notification: Notification;
 
   @Column({ default: false })

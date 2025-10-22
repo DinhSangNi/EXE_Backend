@@ -16,10 +16,16 @@ export class PostAmenity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Post, (post) => post.postAmenities)
+  @ManyToOne(() => Post, (post) => post.postAmenities, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'postId' })
   post: Post;
 
-  @ManyToOne(() => Amenity, (amenity) => amenity.postAmenities)
+  @ManyToOne(() => Amenity, (amenity) => amenity.postAmenities, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'amenityId' })
   amenity: Amenity;
 
   @CreateDateColumn()

@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   CreateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Notification } from './notification.entity';
 import { Appointment } from './appointment.entity';
@@ -15,13 +16,21 @@ export class NotificationAppointment {
   @ManyToOne(
     () => Notification,
     (notification) => notification.notificationAppointments,
+    {
+      onDelete: 'CASCADE',
+    },
   )
+  @JoinColumn({ name: 'notificationId' })
   notification: Notification;
 
   @ManyToOne(
     () => Appointment,
     (appointment) => appointment.notificationAppointments,
+    {
+      onDelete: 'CASCADE',
+    },
   )
+  @JoinColumn({ name: 'appointmentId' })
   appointment: Appointment;
 
   @CreateDateColumn()

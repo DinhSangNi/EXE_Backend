@@ -4,7 +4,6 @@ import {
   DeleteDateColumn,
   Entity,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -20,7 +19,9 @@ export class Media {
   @Column({ nullable: true })
   public_id: string;
 
-  @ManyToOne(() => User, (user) => user.medias)
+  @ManyToOne(() => User, (user) => user.medias, {
+    onDelete: 'CASCADE',
+  })
   user: User;
 
   @Column({ nullable: true })
@@ -35,7 +36,10 @@ export class Media {
   @Column({ type: 'enum', enum: Purpose, nullable: true })
   purpose: Purpose;
 
-  @ManyToOne(() => Post, (post) => post.medias, { nullable: true })
+  @ManyToOne(() => Post, (post) => post.medias, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
   post: Post;
 
   @Column({ default: true })

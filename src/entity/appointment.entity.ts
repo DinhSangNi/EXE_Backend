@@ -10,7 +10,6 @@ import {
 import { User } from './user.entity';
 import { AppointmentStatus } from 'src/constants/appointment-status';
 import { NotificationAppointment } from './notification_appointment.entity';
-import { Post } from './post.entity';
 import { AppointmentPost } from './appointment_post.entity';
 
 @Entity('appointments')
@@ -18,10 +17,12 @@ export class Appointment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (user) => user.appointments)
+  @ManyToOne(() => User, (user) => user.appointments, { onDelete: 'CASCADE' })
   user: User;
 
-  @ManyToOne(() => User, (user) => user.hostAppointments)
+  @ManyToOne(() => User, (user) => user.hostAppointments, {
+    onDelete: 'CASCADE',
+  })
   host: User;
 
   @Column({ type: 'timestamp' })
@@ -37,10 +38,14 @@ export class Appointment {
   @Column({ nullable: true })
   note?: string;
 
-  @OneToMany(() => NotificationAppointment, (na) => na.appointment)
+  @OneToMany(() => NotificationAppointment, (na) => na.appointment, {
+    cascade: true,
+  })
   notificationAppointments: NotificationAppointment[];
 
-  @OneToMany(() => AppointmentPost, (ap) => ap.appointment)
+  @OneToMany(() => AppointmentPost, (ap) => ap.appointment, {
+    cascade: true,
+  })
   appointmentPosts: AppointmentPost[];
 
   @CreateDateColumn()

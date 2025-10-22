@@ -26,7 +26,9 @@ export class Post {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @ManyToOne(() => Category, (category) => category.posts)
+  @ManyToOne(() => Category, (category) => category.posts, {
+    onDelete: 'CASCADE',
+  })
   category: Category;
 
   @Column()
@@ -53,16 +55,22 @@ export class Post {
   @Column('float')
   price: number;
 
-  @OneToMany(() => Media, (media) => media.post)
+  @OneToMany(() => Media, (media) => media.post, { cascade: true })
   medias: Media[];
 
-  @OneToMany(() => PostAmenity, (postAmenity) => postAmenity.post)
+  @OneToMany(() => PostAmenity, (postAmenity) => postAmenity.post, {
+    cascade: true,
+  })
   postAmenities: PostAmenity[];
 
-  @ManyToOne(() => User, (user) => user.posts)
+  @ManyToOne(() => User, (user) => user.posts, {
+    onDelete: 'CASCADE',
+  })
   owner: User;
 
-  @OneToMany(() => AppointmentPost, (ap) => ap.post)
+  @OneToMany(() => AppointmentPost, (ap) => ap.post, {
+    cascade: true,
+  })
   appointmentPosts: AppointmentPost[];
 
   @Column({ type: 'enum', enum: PostStatus, default: PostStatus.PENDING })

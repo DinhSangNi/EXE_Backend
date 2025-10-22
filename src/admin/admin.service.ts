@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Appointment } from 'src/entity/appointment.entity';
 import { Post } from 'src/entity/post.entity';
@@ -39,47 +39,48 @@ export class AdminService {
   }
 
   async getPostsAndAppointments(
-    granularity: Granularity = Granularity.DAILY,
-    startDate?: string,
-    endDate?: string,
-  ): Promise<{ period: string; posts: number; appointments: number }[]> {
+    month?: number,
+    year?: number,
+  ): Promise<{
+    data: { period: string; posts: number; appointments: number }[];
+    granularity: 'day' | 'month';
+  }> {
     const today = dayjs();
+
+    if (month && !year) {
+      throw new BadRequestException('Bạn phải nhập cả year khi có month');
+    }
+
+    const targetYear = year ?? today.year();
 
     let start: Dayjs;
     let end: Dayjs;
+    let isMonthlyView = false;
 
-    if (startDate && endDate) {
-      start = dayjs(startDate);
-      end = dayjs(endDate);
+    if (month) {
+      // Hiển thị từng ngày trong tháng
+      start = dayjs(`${targetYear}-${month}-01`);
+      end = start.endOf('month');
+      isMonthlyView = true;
     } else {
-      // FE không truyền → dùng granularity để set default
-      switch (granularity) {
-        case Granularity.WEEKLY:
-          end = today;
-          start = today.subtract(6, 'day');
-          break;
-        case Granularity.MONTHLY:
-          end = today;
-          start = today.startOf('month');
-          break;
-        default:
-          end = today;
-          start = today.subtract(6, 'day');
-      }
+      // Hiển thị 12 tháng trong năm
+      start = dayjs(`${targetYear}-01-01`);
+      end = dayjs(`${targetYear}-12-31`);
     }
 
     // Format start/end để query MySQL (timezone +07)
     const startStr = start.startOf('day').format('YYYY-MM-DD HH:mm:ss');
     const endStr = end.endOf('day').format('YYYY-MM-DD HH:mm:ss');
 
-    // MySQL CONVERT_TZ để đảm bảo timezone VN (+07)
-    const postDateSelect = `DATE(CONVERT_TZ(post.createdAt, '+00:00', '+07:00'))`;
-    const appointmentDateSelect = `DATE(CONVERT_TZ(app.createdAt, '+00:00', '+07:00'))`;
+    // Chọn format date theo chế độ
+    const dateSelect = isMonthlyView
+      ? `DATE(CONVERT_TZ(createdAt, '+00:00', '+07:00'))`
+      : `DATE_FORMAT(CONVERT_TZ(createdAt, '+00:00', '+07:00'), '%Y-%m')`;
 
-    // Lấy posts
+    // ---- POSTS ----
     const posts = await this.postRepository
       .createQueryBuilder('post')
-      .select(`${postDateSelect}`, 'period')
+      .select(`${dateSelect}`, 'period')
       .addSelect('COUNT(*)', 'posts')
       .where('post.createdAt BETWEEN :start AND :end', {
         start: startStr,
@@ -90,10 +91,10 @@ export class AdminService {
       .orderBy('period', 'ASC')
       .getRawMany();
 
-    // Lấy appointments
+    // ---- APPOINTMENTS ----
     const appointments = await this.appointmentRepository
       .createQueryBuilder('app')
-      .select(`${appointmentDateSelect}`, 'period')
+      .select(`${dateSelect}`, 'period')
       .addSelect('COUNT(*)', 'appointments')
       .where('app.createdAt BETWEEN :start AND :end', {
         start: startStr,
@@ -103,38 +104,53 @@ export class AdminService {
       .orderBy('period', 'ASC')
       .getRawMany();
 
-    // Tạo danh sách tất cả ngày trong khoảng để fill missing
-    const allDates: string[] = [];
-    let current = start;
-    while (current.isBefore(end) || current.isSame(end, 'day')) {
-      allDates.push(current.format('YYYY-MM-DD'));
-      current = current.add(1, 'day');
+    // ---- Tạo danh sách các mốc thời gian cần fill ----
+    const allPeriods: string[] = [];
+    if (isMonthlyView) {
+      // Từng ngày trong tháng
+      let current = start;
+      while (current.isBefore(end) || current.isSame(end, 'day')) {
+        allPeriods.push(current.format('YYYY-MM-DD'));
+        current = current.add(1, 'day');
+      }
+    } else {
+      // 12 tháng trong năm
+      for (let m = 1; m <= 12; m++) {
+        allPeriods.push(dayjs(`${targetYear}-${m}-01`).format('YYYY-MM'));
+      }
     }
 
-    // Merge posts + appointments
+    // ---- Merge kết quả ----
     const resultMap = new Map<
       string,
       { period: string; posts: number; appointments: number }
     >();
-    allDates.forEach((d) =>
-      resultMap.set(d, { period: d, posts: 0, appointments: 0 }),
+    allPeriods.forEach((p) =>
+      resultMap.set(p, { period: p, posts: 0, appointments: 0 }),
     );
 
     posts.forEach((p) => {
-      const periodVN = dayjs(p.period).format('YYYY-MM-DD'); // convert UTC -> VN
-      const existing = resultMap.get(periodVN);
+      const key = isMonthlyView
+        ? dayjs(p.period).format('YYYY-MM-DD')
+        : dayjs(p.period).format('YYYY-MM');
+      const existing = resultMap.get(key);
       if (existing) existing.posts = Number(p.posts);
     });
 
     appointments.forEach((a) => {
-      const periodVN = dayjs(a.period).format('YYYY-MM-DD'); // convert UTC -> VN
-      const existing = resultMap.get(periodVN);
+      const key = isMonthlyView
+        ? dayjs(a.period).format('YYYY-MM-DD')
+        : dayjs(a.period).format('YYYY-MM');
+      const existing = resultMap.get(key);
       if (existing) existing.appointments = Number(a.appointments);
     });
 
-    return Array.from(resultMap.values()).sort((a, b) =>
-      a.period.localeCompare(b.period),
-    );
+    return {
+      data: Array.from(resultMap.values()).sort((a, b) =>
+        a.period.localeCompare(b.period),
+      ),
+      granularity: isMonthlyView ? 'day' : 'month',
+    };
   }
 
   async getPostsByCategory() {

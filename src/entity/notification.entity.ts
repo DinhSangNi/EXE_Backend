@@ -20,17 +20,25 @@ export class Notification {
   @Column()
   message: string;
 
-  @Column({ enum: NotificationType, default: NotificationType.SYSTEM })
+  @Column({
+    type: 'enum',
+    enum: NotificationType,
+    default: NotificationType.SYSTEM,
+  })
   type: NotificationType;
 
   @CreateDateColumn()
   createdAt: Date;
 
-  @OneToMany(() => UserNotification, (un) => un.notification, { cascade: true })
+  @OneToMany(() => UserNotification, (un) => un.notification, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   userNotifications: UserNotification[];
 
   @OneToMany(() => NotificationAppointment, (na) => na.notification, {
     cascade: true,
+    onDelete: 'CASCADE',
   })
   notificationAppointments: NotificationAppointment[];
 }

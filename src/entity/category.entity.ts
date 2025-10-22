@@ -20,13 +20,18 @@ export class Category {
 
   @ManyToOne(() => Category, (category) => category.children, {
     nullable: true,
+    onDelete: 'CASCADE',
   })
   parent: Category;
 
-  @OneToMany(() => Category, (category) => category.parent)
+  @OneToMany(() => Category, (category) => category.parent, {
+    cascade: true,
+  })
   children: Category[];
 
-  @OneToMany(() => Post, (post) => post.category)
+  @OneToMany(() => Post, (post) => post.category, {
+    cascade: true,
+  })
   posts: Post[];
 
   @CreateDateColumn()

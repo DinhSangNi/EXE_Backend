@@ -4,8 +4,6 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -35,19 +33,23 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
-  @OneToMany(() => Media, (media) => media.user)
+  @OneToMany(() => Media, (media) => media.user, { cascade: true })
   medias: Media[];
 
-  @OneToMany(() => Post, (post) => post.owner)
+  @OneToMany(() => Post, (post) => post.owner, { cascade: true })
   posts: Post[];
 
-  @OneToMany(() => Appointment, (appointment) => appointment.user)
+  @OneToMany(() => Appointment, (appointment) => appointment.user, {
+    cascade: true,
+  })
   appointments: Appointment[];
 
-  @OneToMany(() => Appointment, (appointment) => appointment.host)
+  @OneToMany(() => Appointment, (appointment) => appointment.host, {
+    cascade: true,
+  })
   hostAppointments: Appointment[];
 
-  @OneToMany(() => UserNotification, (un) => un.user)
+  @OneToMany(() => UserNotification, (un) => un.user, { cascade: true })
   userNotifications: UserNotification[];
 
   @CreateDateColumn()

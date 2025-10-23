@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Appointment } from 'src/entity/appointment.entity';
 import { Post } from 'src/entity/post.entity';
 import { Repository } from 'typeorm';
-import { Granularity } from './enum/granularity.enum';
 import { User } from 'src/entity/user.entity';
 import dayjs, { Dayjs } from 'dayjs';
 import { Category } from 'src/entity/category.entity';

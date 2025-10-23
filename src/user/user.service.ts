@@ -11,6 +11,8 @@ import { hash } from 'bcrypt';
 import { GoogleCreateUserDto } from 'src/dto/request/user-google-create';
 import { MediaService } from 'src/media/media.service';
 import { Purpose } from 'src/constants/room-type.enum';
+import { UserFilterDto } from 'src/dto/request/user-filter.dto';
+import { PaginationResponse } from 'src/dto/Response/paginationResponse.dto';
 
 @Injectable()
 export class UserService {
@@ -78,8 +80,32 @@ export class UserService {
     );
   }
 
-  async findAll() {
-    return await this.userRepository.find();
+  async findAll(query?: UserFilterDto) {
+    const { q, role, page, limit } = query || {};
+    const newPage = page && page > 0 ? page : 1;
+    const newLimit = limit && limit > 0 ? limit : 10;
+    const queryBuilder = this.userRepository.createQueryBuilder('user');
+
+    if (q) {
+      queryBuilder.andWhere('user.name LIKE :q OR user.email LIKE :q', {
+        q: `%${q}%`,
+      });
+    }
+
+    if (role) {
+      queryBuilder.andWhere('user.role = :role', { role });
+    }
+
+    queryBuilder.skip((newPage - 1) * newLimit).take(newLimit);
+    queryBuilder.orderBy('user.createdAt', 'DESC');
+    const [results, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data: results,
+      totalItems: total,
+      limit: 1,
+      page: 1,
+    } as PaginationResponse<User[]>;
   }
 
   async findByEmail(email: string) {

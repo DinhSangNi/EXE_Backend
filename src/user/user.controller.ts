@@ -19,19 +19,19 @@ import { Roles } from 'src/common/decorators/role.decorator';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get('/')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
-  @ApiOperation({ summary: 'Lấy danh sách tất cả người dùng' })
-  @ApiSwaggerResponse({
-    status: 200,
-    description: 'Lấy danh sách thành công',
-    type: ApiResponse, // Đây là lớp wrapper, bên dưới cần thêm generic
-  })
-  async getAllUser(@Res() res: Response) {
-    const users = await this.userService.findAll();
-    return res
-      .status(HttpStatus.OK)
-      .json(new ApiResponse<User[]>('Get users successfully', users));
-  }
+  // @Get('/')
+  // @UseGuards(AuthGuard('jwt'), RolesGuard)
+  // @Roles('admin')
+  // @ApiOperation({ summary: 'Lấy danh sách tất cả người dùng' })
+  // @ApiSwaggerResponse({
+  //   status: 200,
+  //   description: 'Lấy danh sách thành công',
+  //   type: ApiResponse, // Đây là lớp wrapper, bên dưới cần thêm generic
+  // })
+  // async getAllUser(@Res() res: Response) {
+  //   const users = await this.userService.findAll();
+  //   return res
+  //     .status(HttpStatus.OK)
+  //     .json(new ApiResponse<User[]>('Get users successfully', users));
+  // }
 }
